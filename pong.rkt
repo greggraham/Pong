@@ -1,12 +1,14 @@
 ;; The first three lines of this file were inserted by DrRacket. They record metadata
 ;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-beginner-reader.ss" "lang")((modname Paddle1) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ())))
-; Paddle1 - G. Graham 9/21/2012
+#reader(lib "htdp-beginner-reader.ss" "lang")((modname pong) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f ())))
+; Pong - G. Graham 9/25/2012
 
 (require 2htdp/image)
 (require 2htdp/universe)
 
+;-------------------
 ; Physical Constants
+;-------------------
 (define FIELD-WIDTH 800)
 (define FIELD-HEIGHT 600)
 (define PADDLE-DELTA 20) ;amount paddle move at a time
@@ -14,13 +16,19 @@
 (define PADDLE-HEIGHT 80)
 (define PADDLE-WIDTH 10)
 
+;-----------------
 ; Data Definitions
+;-----------------
 ; A PaddleY is in the range [0, FIELD-HEIGHT)
 
 ; A Command is one of
 ; - "a" move left paddle up
 ; - "z" move left paddle down
 
+
+;--------------------------
+; Core Function Definitions
+;--------------------------
 
 ; Number -> PaddleY
 ; limit the input value to the range of PaddleY
@@ -49,6 +57,10 @@
     [(key=? cmd "z") (+ y PADDLE-DELTA)]
     [else y])))
 
+
+;------------------
+; Display Rendering
+;------------------
 
 ; Graphical Constants
 (define FIELD (empty-scene FIELD-WIDTH FIELD-HEIGHT "black"))
