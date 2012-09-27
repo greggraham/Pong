@@ -47,6 +47,7 @@
 ; move the paddle based on the command
 (check-expect (move-paddle 500 "a") (- 500 PADDLE-DELTA))
 (check-expect (move-paddle 500 "z") (+ 500 PADDLE-DELTA))
+(check-expect (move-paddle 400 "x") 400)
 
 (define (move-paddle y cmd)
   (cond
@@ -59,9 +60,10 @@
 ; move the paddle while keeping it on the screen
 (check-expect (move-paddle-ltd 500 "a") (- 500 PADDLE-DELTA))
 (check-expect (move-paddle-ltd 500 "z") (+ 500 PADDLE-DELTA))
+(check-expect (move-paddle-ltd 400 "x") 400)
 (check-expect (move-paddle-ltd 0 "a") 0)
 (check-expect (move-paddle-ltd (sub1 FIELD-HEIGHT) "z") (sub1 FIELD-HEIGHT))
-(check-expect (move-paddle-ltd 400 "x") 400)
+
 
 (define (move-paddle-ltd y cmd)
   (limit-paddle-y (move-paddle y cmd)))
