@@ -11,7 +11,7 @@
 ;-------------------
 (define FIELD-WIDTH 800)
 (define FIELD-HEIGHT 600)
-(define PADDLE-DELTA 20) ;amount paddle move at a time
+(define PADDLE-DELTA 20) ;amount paddle moves at a time
 (define LEFT-PADDLE-X 70)
 (define PADDLE-HEIGHT 80)
 (define PADDLE-WIDTH 10)
@@ -47,16 +47,24 @@
 ; move the paddle based on the command
 (check-expect (move-paddle 500 "a") (- 500 PADDLE-DELTA))
 (check-expect (move-paddle 500 "z") (+ 500 PADDLE-DELTA))
-(check-expect (move-paddle 0 "a") 0)
-(check-expect (move-paddle (sub1 FIELD-HEIGHT) "z") (sub1 FIELD-HEIGHT))
-(check-expect (move-paddle 400 "x") 400)
 
 (define (move-paddle y cmd)
-  (limit-paddle-y (cond
+  (cond
     [(key=? cmd "a") (- y PADDLE-DELTA)]
     [(key=? cmd "z") (+ y PADDLE-DELTA)]
-    [else y])))
+    [else y]))
 
+
+; PaddleY Command -> PaddleY
+; move the paddle while keeping it on the screen
+(check-expect (move-paddle-ltd 500 "a") (- 500 PADDLE-DELTA))
+(check-expect (move-paddle-ltd 500 "z") (+ 500 PADDLE-DELTA))
+(check-expect (move-paddle-ltd 0 "a") 0)
+(check-expect (move-paddle-ltd (sub1 FIELD-HEIGHT) "z") (sub1 FIELD-HEIGHT))
+(check-expect (move-paddle-ltd 400 "x") 400)
+
+(define (move-paddle-ltd y cmd)
+  (limit-paddle-y (move-paddle y cmd)))
 
 ;------------------
 ; Display Rendering
@@ -75,5 +83,5 @@
 
 ; Create the world
 (big-bang 100
-          (on-key move-paddle)
+          (on-key move-paddle-ltd)
           (to-draw render-left-paddle))
