@@ -6,6 +6,23 @@
 (require 2htdp/image)
 (require 2htdp/universe)
 
+;-----------------
+; Data Definitions
+;-----------------
+; A PaddleY is in the range [0, FIELD-HEIGHT)
+
+; A Command is one of
+; - "a" move left paddle up
+; - "z" move left paddle down
+; - "up" move right paddle up
+; - "down" move right paddle down
+
+(define-struct state left-y right-y)
+; A State is a structure: (make-state Number Number)
+; interp. (make-state left-y right-y) means that the game state is
+; made up of the y value of the left paddle and the y value of the
+; right paddle
+
 ;-------------------
 ; Physical Constants
 ;-------------------
@@ -15,15 +32,7 @@
 (define LEFT-PADDLE-X 70)
 (define PADDLE-HEIGHT 80)
 (define PADDLE-WIDTH 10)
-
-;-----------------
-; Data Definitions
-;-----------------
-; A PaddleY is in the range [0, FIELD-HEIGHT)
-
-; A Command is one of
-; - "a" move left paddle up
-; - "z" move left paddle down
+(define INITIAL-STATE (make-state 100 300))
 
 
 ;--------------------------
@@ -43,7 +52,7 @@
     [else y]))
 
 
-; PaddleY Command -> PaddleY
+; State Command -> State
 ; move the paddle based on the command
 (check-expect (move-paddle 500 "a") (- 500 PADDLE-DELTA))
 (check-expect (move-paddle 500 "z") (+ 500 PADDLE-DELTA))
@@ -64,9 +73,9 @@
 (check-expect (move-paddle-ltd 0 "a") 0)
 (check-expect (move-paddle-ltd (sub1 FIELD-HEIGHT) "z") (sub1 FIELD-HEIGHT))
 
-
 (define (move-paddle-ltd y cmd)
   (limit-paddle-y (move-paddle y cmd)))
+
 
 ;------------------
 ; Display Rendering
