@@ -17,9 +17,9 @@
 ; - "up" move right paddle up
 ; - "down" move right paddle down
 
-(define-struct state left-y right-y)
-; A State is a structure: (make-state Number Number)
-; interp. (make-state left-y right-y) means that the game state is
+(define-struct game (left-y right-y))
+; A Game is a structure: (make-game Number Number)
+; interp. (make-game left-y right-y) means that the game state is
 ; made up of the y value of the left paddle and the y value of the
 ; right paddle
 
@@ -32,7 +32,12 @@
 (define LEFT-PADDLE-X 70)
 (define PADDLE-HEIGHT 80)
 (define PADDLE-WIDTH 10)
-(define INITIAL-STATE (make-state 100 300))
+(define INITIAL-STATE (make-game 100 500))
+(define TEST-STATE-1 (make-game (- 100 PADDLE-DELTA) 500))
+(define TEST-STATE-2 (make-game (+ 100 PADDLE-DELTA) 500))
+(define TEST-STATE-3 (make-game 100 (- 500 PADDLE-DELTA)))
+(define TEST-STATE-4 (make-game 100 (+ 500 PADDLE-DELTA)))
+(define TEST-STATE-5 (make-game 0 500))
 
 
 ;--------------------------
@@ -52,11 +57,21 @@
     [else y]))
 
 
-; State Command -> State
+; Game Number -> Game
+; move the left paddle the given amount
+(check-expect (move-left-paddle INITIAL-STATE PADDLE-DELTA) TEST-STATE-2)
+(check-expect (move-left-paddle INITIAL-STATE -1000) TEST-STATE-5)
+(define (move-left-paddle s amount)
+  (make-game (limit-paddle-y (+ (game-left-y s) amount))
+             (game-right-y s)))
+
+; Game Command -> Game
 ; move the paddle based on the command
-(check-expect (move-paddle 500 "a") (- 500 PADDLE-DELTA))
-(check-expect (move-paddle 500 "z") (+ 500 PADDLE-DELTA))
-(check-expect (move-paddle 400 "x") 400)
+(check-expect (move-paddle INITIAL-STATE "a") TEST-STATE-1)
+(check-expect (move-paddle INITIAL-STATE "z") TEST-STATE-2)
+(check-expect (move-paddle INITIAL-STATE "up") TEST-STATE-3)
+(check-expect (move-paddle INITIAL-STATE "down") TEST-STATE-4)
+(check-expect (move-paddle INITIAL-STATE "x") INITIAL-STATE)
 
 (define (move-paddle y cmd)
   (cond
