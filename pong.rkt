@@ -17,9 +17,9 @@
 ; - "up" move right paddle up
 ; - "down" move right paddle down
 
-(define-struct game (left-y right-y))
-; A Game is a structure: (make-game Number Number)
-; interp. (make-game left-y right-y) means that the game state is
+(define-struct paddles (left-y right-y))
+; A Paddles is a structure: (make-paddles Number Number)
+; interp. (make-paddles left-y right-y) means that the paddle state is
 ; made up of the y value of the left paddle and the y value of the
 ; right paddle
 
@@ -30,14 +30,17 @@
 (define FIELD-HEIGHT 600)
 (define PADDLE-DELTA 20) ;amount paddle moves at a time
 (define LEFT-PADDLE-X 70)
+(define RIGHT-PADDLE-X (- FIELD-WIDTH LEFT-PADDLE-X))
 (define PADDLE-HEIGHT 80)
 (define PADDLE-WIDTH 10)
-(define INITIAL-STATE (make-game 100 500))
-(define TEST-STATE-1 (make-game (- 100 PADDLE-DELTA) 500))
-(define TEST-STATE-2 (make-game (+ 100 PADDLE-DELTA) 500))
-(define TEST-STATE-3 (make-game 100 (- 500 PADDLE-DELTA)))
-(define TEST-STATE-4 (make-game 100 (+ 500 PADDLE-DELTA)))
-(define TEST-STATE-5 (make-game 0 500))
+
+(define INITIAL-PADDLES (make-paddles 100 500))
+(define TEST-PADDLES-1 (make-paddles (- 100 PADDLE-DELTA) 500))
+(define TEST-PADDLES-2 (make-paddles (+ 100 PADDLE-DELTA) 500))
+(define TEST-PADDLES-3 (make-paddles 100 (- 500 PADDLE-DELTA)))
+(define TEST-PADDLES-4 (make-paddles 100 (+ 500 PADDLE-DELTA)))
+(define TEST-PADDLES-5 (make-paddles 0 500))
+(define TEST-PADDLES-6 (make-paddles 100 0))
 
 
 ;--------------------------
@@ -57,39 +60,39 @@
     [else y]))
 
 
-; Game Number -> Game
+; Paddles Number -> Paddles
 ; move the left paddle the given amount
-(check-expect (move-left-paddle INITIAL-STATE PADDLE-DELTA) TEST-STATE-2)
-(check-expect (move-left-paddle INITIAL-STATE -1000) TEST-STATE-5)
+(check-expect (move-left-paddle INITIAL-PADDLES PADDLE-DELTA) TEST-PADDLES-2)
+(check-expect (move-left-paddle INITIAL-PADDLES -1000) TEST-PADDLES-5)
 (define (move-left-paddle s amount)
-  (make-game (limit-paddle-y (+ (game-left-y s) amount))
-             (game-right-y s)))
+  (make-paddles (limit-paddle-y (+ (paddles-left-y s) amount))
+             (paddles-right-y s)))
 
-; Game Command -> Game
+
+; Paddles Number -> Paddles
+; move the right paddle the given amount
+(check-expect (move-right-paddle INITIAL-PADDLES PADDLE-DELTA) TEST-PADDLES-4)
+(check-expect (move-right-paddle INITIAL-PADDLES -1000) TEST-PADDLES-6)
+(define (move-right-paddle s amount)
+  (make-paddles (paddles-left-y s)
+             (limit-paddle-y (+ (paddles-right-y s) amount))))
+
+
+; Paddles Command -> Paddles
 ; move the paddle based on the command
-(check-expect (move-paddle INITIAL-STATE "a") TEST-STATE-1)
-(check-expect (move-paddle INITIAL-STATE "z") TEST-STATE-2)
-(check-expect (move-paddle INITIAL-STATE "up") TEST-STATE-3)
-(check-expect (move-paddle INITIAL-STATE "down") TEST-STATE-4)
-(check-expect (move-paddle INITIAL-STATE "x") INITIAL-STATE)
+(check-expect (move-paddles INITIAL-PADDLES "a") TEST-PADDLES-1)
+(check-expect (move-paddles INITIAL-PADDLES "z") TEST-PADDLES-2)
+(check-expect (move-paddles INITIAL-PADDLES "up") TEST-PADDLES-3)
+(check-expect (move-paddles INITIAL-PADDLES "down") TEST-PADDLES-4)
+(check-expect (move-paddles INITIAL-PADDLES "x") INITIAL-PADDLES)
 
-(define (move-paddle y cmd)
+(define (move-paddles s cmd)
   (cond
-    [(key=? cmd "a") (- y PADDLE-DELTA)]
-    [(key=? cmd "z") (+ y PADDLE-DELTA)]
-    [else y]))
-
-
-; PaddleY Command -> PaddleY
-; move the paddle while keeping it on the screen
-(check-expect (move-paddle-ltd 500 "a") (- 500 PADDLE-DELTA))
-(check-expect (move-paddle-ltd 500 "z") (+ 500 PADDLE-DELTA))
-(check-expect (move-paddle-ltd 400 "x") 400)
-(check-expect (move-paddle-ltd 0 "a") 0)
-(check-expect (move-paddle-ltd (sub1 FIELD-HEIGHT) "z") (sub1 FIELD-HEIGHT))
-
-(define (move-paddle-ltd y cmd)
-  (limit-paddle-y (move-paddle y cmd)))
+    [(key=? cmd "a") (move-left-paddle s (- PADDLE-DELTA))]
+    [(key=? cmd "z") (move-left-paddle s PADDLE-DELTA)]
+    [(key=? cmd "up") (move-right-paddle s (- PADDLE-DELTA))]
+    [(key=? cmd "down") (move-right-paddle s PADDLE-DELTA)]
+    [else s]))
 
 
 ;------------------
@@ -103,11 +106,15 @@
 
 ; PaddleY -> Scene
 ; render the left paddle on the screen
-(define (render-left-paddle y)
-  (place-image PADDLE LEFT-PADDLE-X y FIELD))
+(define (render-paddles s)
+  (place-image PADDLE
+               LEFT-PADDLE-X (paddles-left-y s) 
+               (place-image PADDLE
+                            RIGHT-PADDLE-X (paddles-right-y s)
+                            FIELD)))
 
 
 ; Create the world
-(big-bang 100
-          (on-key move-paddle-ltd)
-          (to-draw render-left-paddle))
+(big-bang INITIAL-PADDLES
+          (on-key move-paddles)
+          (to-draw render-paddles))
