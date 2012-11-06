@@ -100,7 +100,7 @@
 ;------------------
 
 ; Graphical Constants
-(define FIELD (empty-scene FIELD-WIDTH FIELD-HEIGHT "black"))
+(define FIELD (rectangle FIELD-WIDTH FIELD-HEIGHT "solid" "black"))
 (define PADDLE (rectangle PADDLE-WIDTH PADDLE-HEIGHT "solid" "white"))
 
 
