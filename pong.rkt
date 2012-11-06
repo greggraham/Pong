@@ -23,6 +23,23 @@
 ; made up of the y value of the left paddle and the y value of the
 ; right paddle
 
+(define-struct vel (dx dy))
+; A Velocity is a structure: (make-vel Number Number)
+; interp. (make-vel dx dy) means that the velocity is made up of
+; a delta x and delta y value indicating the number of pixels
+; to move in the x and y directions for each frame.
+
+(define-struct ball (p v))
+; A Ball is a structure: (make-ball Posn Vel)
+; interp. (make-ball p v) means that the ball state is made up of
+; its position (Posn) and its velocity (Vel).
+
+(define-struct game (ball paddles))
+; A Game is a structure: (make-game Ball Paddles)
+; interp. (make-ball ball paddles) means that the state of the game
+; is made up of the state of the ball and the state of the paddles
+
+
 ;-------------------
 ; Physical Constants
 ;-------------------
@@ -42,6 +59,9 @@
 (define TEST-PADDLES-5 (make-paddles 0 500))
 (define TEST-PADDLES-6 (make-paddles 100 0))
 
+(define INITIAL-BALL (make-ball (make-posn 0 0) (make-vel 5 2)))
+(define INITIAL-GAME (make-game INITIAL-BALL INITIAL-PADDLES))
+(define TEST-GAME-1 (make-game INITIAL-BALL TEST-PADDLES-1))
 
 ;--------------------------
 ; Core Function Definitions
@@ -94,6 +114,11 @@
     [(key=? cmd "down") (move-right-paddle s PADDLE-DELTA)]
     [else s]))
 
+; Game Command -> Game
+; change the game state based on the command
+(check-expect (control-game INITIAL-GAME "a") TEST-GAME-1)
+(define (control-game g cmd)
+  (make-game (game-ball g) (move-paddles (game-paddles g) cmd)))
 
 ;------------------
 ; Display Rendering
@@ -113,8 +138,10 @@
                             RIGHT-PADDLE-X (paddles-right-y s)
                             FIELD)))
 
+(define (render-game g)
+  (render-paddles (game-paddles g)))
 
 ; Create the world
-(big-bang INITIAL-PADDLES
-          (on-key move-paddles)
-          (to-draw render-paddles))
+(big-bang INITIAL-GAME
+          (on-key control-game)
+          (to-draw render-game))
