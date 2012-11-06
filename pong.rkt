@@ -117,6 +117,7 @@
 ; Game Command -> Game
 ; change the game state based on the command
 (check-expect (control-game INITIAL-GAME "a") TEST-GAME-1)
+
 (define (control-game g cmd)
   (make-game (game-ball g) (move-paddles (game-paddles g) cmd)))
 
@@ -129,8 +130,8 @@
 (define PADDLE (rectangle PADDLE-WIDTH PADDLE-HEIGHT "solid" "white"))
 
 
-; PaddleY -> Scene
-; render the left paddle on the screen
+; Paddles -> Scene
+; render both paddles on the screen
 (define (render-paddles s)
   (place-image PADDLE
                LEFT-PADDLE-X (paddles-left-y s) 
@@ -138,6 +139,8 @@
                             RIGHT-PADDLE-X (paddles-right-y s)
                             FIELD)))
 
+; Game -> Scene
+; render the entire game state
 (define (render-game g)
   (render-paddles (game-paddles g)))
 
