@@ -50,6 +50,7 @@
 (define RIGHT-PADDLE-X (- FIELD-WIDTH LEFT-PADDLE-X))
 (define PADDLE-HEIGHT 80)
 (define PADDLE-WIDTH 10)
+(define BALL-RADIUS 5)
 
 (define INITIAL-PADDLES (make-paddles 100 500))
 (define TEST-PADDLES-1 (make-paddles (- 100 PADDLE-DELTA) 500))
@@ -60,8 +61,10 @@
 (define TEST-PADDLES-6 (make-paddles 100 0))
 
 (define INITIAL-BALL (make-ball (make-posn 0 0) (make-vel 5 2)))
+(define TEST-BALL-1 (make-ball (make-posn 5 2) (make-vel 5 2)))
 (define INITIAL-GAME (make-game INITIAL-BALL INITIAL-PADDLES))
 (define TEST-GAME-1 (make-game INITIAL-BALL TEST-PADDLES-1))
+(define TEST-GAME-2 (make-game TEST-BALL-1 INITIAL-PADDLES))
 
 ;--------------------------
 ; Core Function Definitions
@@ -114,12 +117,38 @@
     [(key=? cmd "down") (move-right-paddle s PADDLE-DELTA)]
     [else s]))
 
+
 ; Game Command -> Game
 ; change the game state based on the command
 (check-expect (control-game INITIAL-GAME "a") TEST-GAME-1)
 
 (define (control-game g cmd)
   (make-game (game-ball g) (move-paddles (game-paddles g) cmd)))
+
+
+; Posn Vel -> Posn
+; Compute a new position by applying the given velocity
+(check-expect (translate (make-posn 10 20) (make-vel 3 5)) (make-posn 13 25))
+
+(define (translate p v)
+  (make-posn (+ (posn-x p) (vel-dx v)) (+ (posn-y p) (vel-dy v))))
+
+
+; Ball -> Ball
+; Change the position of the ball according to its current velocity
+(check-expect (update-posn INITIAL-BALL) TEST-BALL-1)
+
+(define (update-posn b)
+  (make-ball (translate (ball-p b) (ball-v b)) (ball-v b)))
+
+
+; Game->Game
+; Update the game state by moving the ball
+(check-expect (move-ball INITIAL-GAME) TEST-GAME-2)
+
+(define (move-ball g) 
+  (make-game (update-posn (game-ball g)) (game-paddles g)))
+
 
 ;------------------
 ; Display Rendering
@@ -128,6 +157,7 @@
 ; Graphical Constants
 (define FIELD (rectangle FIELD-WIDTH FIELD-HEIGHT "solid" "black"))
 (define PADDLE (rectangle PADDLE-WIDTH PADDLE-HEIGHT "solid" "white"))
+(define BALL (circle BALL-RADIUS "solid" "white"))
 
 
 ; Paddles -> Scene
@@ -139,12 +169,18 @@
                             RIGHT-PADDLE-X (paddles-right-y s)
                             FIELD)))
 
+
 ; Game -> Scene
 ; render the entire game state
 (define (render-game g)
-  (render-paddles (game-paddles g)))
+  (place-image BALL
+               (posn-x (ball-p (game-ball g)))
+               (posn-y (ball-p (game-ball g)))
+               (render-paddles (game-paddles g))))
+
 
 ; Create the world
 (big-bang INITIAL-GAME
+          (on-tick move-ball)
           (on-key control-game)
           (to-draw render-game))
