@@ -62,6 +62,7 @@
 
 (define INITIAL-BALL (make-ball (make-posn 0 0) (make-vel 5 2)))
 (define TEST-BALL-1 (make-ball (make-posn 5 2) (make-vel 5 2)))
+(define TEST-BALL-2 (make-ball (make-posn 0 50) (make-vel 3 -10)))
 (define INITIAL-GAME (make-game INITIAL-BALL INITIAL-PADDLES))
 (define TEST-GAME-1 (make-game INITIAL-BALL TEST-PADDLES-1))
 (define TEST-GAME-2 (make-game TEST-BALL-1 INITIAL-PADDLES))
@@ -141,13 +142,42 @@
 (define (update-posn b)
   (make-ball (translate (ball-p b) (ball-v b)) (ball-v b)))
 
+; Ball -> Boolean
+; Check to see if the ball is going off of the top of the screen
+(check-expect (off-top (make-ball (make-posn 50 0) (make-vel -5 -3))) true)
+(check-expect (off-top (make-ball (make-posn 50 10) (make-vel -5 -3))) false)
+(check-expect (off-top (make-ball (make-posn 50 0) (make-vel -5 3))) false)
 
+(define (off-top b)
+  (and (< (vel-dy (ball-v b)) 0) (<= (posn-y (ball-p b)) 0)))
+
+; Ball -> Boolean
+; Check to see if the ball is going off of the bottom of the screen
+(check-expect (off-bottom (make-ball (make-posn 50 FIELD-HEIGHT) (make-vel 5 3))) true)
+(check-expect (off-bottom (make-ball (make-posn 50 (- FIELD-HEIGHT 10)) (make-vel 5 3))) false)
+(check-expect (off-bottom (make-ball (make-posn 50 FIELD-HEIGHT) (make-vel 5 -3))) false)
+
+(define (off-bottom b)
+  (and (> (vel-dy (ball-v b)) 0) (>= (posn-y (ball-p b)) FIELD-HEIGHT)))
+
+
+; Ball -> Ball
+; Update the velocity of the ball in the case of a collision
+(check-expect (detect-collision (make-ball (make-posn 100 0) (make-vel 5 -2)))
+              (make-ball (make-posn 100 0) (make-vel 5 2)))
+
+(define (detect-collision b)
+  (cond
+    [(or (off-top b) (off-bottom b))
+     (make-ball (ball-p b) (make-vel (vel-dx (ball-v b)) (- (vel-dy (ball-v b)))))]
+    [else b]))
+ 
 ; Game->Game
 ; Update the game state by moving the ball
 (check-expect (move-ball INITIAL-GAME) TEST-GAME-2)
 
 (define (move-ball g) 
-  (make-game (update-posn (game-ball g)) (game-paddles g)))
+  (make-game (update-posn (detect-collision (game-ball g))) (game-paddles g)))
 
 
 ;------------------
@@ -180,7 +210,7 @@
 
 
 ; Create the world
-(big-bang INITIAL-GAME
+(big-bang (make-game TEST-BALL-2 INITIAL-PADDLES)
           (on-tick move-ball)
           (on-key control-game)
           (to-draw render-game))
