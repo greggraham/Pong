@@ -142,6 +142,7 @@
 (define (update-posn b)
   (make-ball (translate (ball-p b) (ball-v b)) (ball-v b)))
 
+
 ; Ball -> Boolean
 ; Check to see if the ball is going off of the top of the screen
 (check-expect (off-top (make-ball (make-posn 50 0) (make-vel -5 -3))) true)
@@ -150,6 +151,7 @@
 
 (define (off-top b)
   (and (< (vel-dy (ball-v b)) 0) (<= (posn-y (ball-p b)) 0)))
+
 
 ; Ball -> Boolean
 ; Check to see if the ball is going off of the bottom of the screen
@@ -172,6 +174,7 @@
      (make-ball (ball-p b) (make-vel (vel-dx (ball-v b)) (- (vel-dy (ball-v b)))))]
     [else b]))
  
+
 ; Game->Game
 ; Update the game state by moving the ball
 (check-expect (move-ball INITIAL-GAME) TEST-GAME-2)
