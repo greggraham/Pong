@@ -48,6 +48,8 @@
 (define PADDLE-DELTA 20) ;amount paddle moves at a time
 (define LEFT-PADDLE-X 70)
 (define RIGHT-PADDLE-X (- FIELD-WIDTH LEFT-PADDLE-X))
+(define TO-LEFT -1)
+(define TO-RIGHT 1)
 (define PADDLE-HEIGHT 80)
 (define PADDLE-WIDTH 10)
 (define BALL-RADIUS 5)
@@ -90,7 +92,7 @@
 (check-expect (move-left-paddle INITIAL-PADDLES -1000) TEST-PADDLES-5)
 (define (move-left-paddle s amount)
   (make-paddles (limit-paddle-y (+ (paddles-left-y s) amount))
-             (paddles-right-y s)))
+                (paddles-right-y s)))
 
 
 ; Paddles Number -> Paddles
@@ -99,7 +101,7 @@
 (check-expect (move-right-paddle INITIAL-PADDLES -1000) TEST-PADDLES-6)
 (define (move-right-paddle s amount)
   (make-paddles (paddles-left-y s)
-             (limit-paddle-y (+ (paddles-right-y s) amount))))
+                (limit-paddle-y (+ (paddles-right-y s) amount))))
 
 
 ; Paddles Command -> Paddles
@@ -163,24 +165,88 @@
   (and (> (vel-dy (ball-v b)) 0) (>= (posn-y (ball-p b)) FIELD-HEIGHT)))
 
 
-; Ball -> Ball
-; Update the velocity of the ball in the case of a collision
-(check-expect (detect-collision (make-ball (make-posn 100 0) (make-vel 5 -2)))
-              (make-ball (make-posn 100 0) (make-vel 5 2)))
+; Number -> Number
+; Return -1 for negative numbers, 1 for positive numbers, and 0 for 0.
 
-(define (detect-collision b)
+(check-expect (sign -5) -1)
+(check-expect (sign 10) 1)
+(check-expect (sign 0) 0)
+(define (sign n)
+  (cond
+    [(< n 0) -1]
+    [(> n 0) 1]
+    [else 0]))
+
+
+; Number Number -> Boolean
+; Compare the y values of the ball and paddle to see if they are within range
+; for a collision.
+(check-expect (within-vertical-range 100 101) true)
+(check-expect (within-vertical-range 100 1) false)
+
+(define (within-vertical-range by py)
+  (<= (abs (- by py))
+      (+ BALL-RADIUS (/ PADDLE-HEIGHT 2))))
+
+
+; Number Number -> Boolean
+; Compare the x values of the ball and paddle to see if they are within range
+; for a collision.
+(check-expect (within-horizontal-range 100 101) true)
+(check-expect (within-horizontal-range 100 1) false)
+
+(define (within-horizontal-range bx px)
+  (<= (abs (- bx px))
+      (+ BALL-RADIUS (/ PADDLE-WIDTH 2))))
+
+
+; Ball Paddles -> Boolean
+; Check to see if the ball collided with the left paddle
+(check-expect (collide-paddle (make-ball (make-posn RIGHT-PADDLE-X (paddles-right-y INITIAL-PADDLES))
+                                         (make-vel 5 -2))
+                              RIGHT-PADDLE-X
+                              (paddles-right-y INITIAL-PADDLES)
+                              TO-RIGHT)
+              true)
+
+(define (collide-paddle b px py dir)
+  (and (= (sign (vel-dx (ball-v b))) dir)
+       (within-vertical-range (posn-y (ball-p b)) py)
+       (within-horizontal-range (posn-x (ball-p b)) px)))
+
+; Ball Paddles -> Ball
+; Update the velocity of the ball in the case of a collision
+(check-expect (detect-collision (make-ball (make-posn 100 0)
+                                           (make-vel 5 -2))
+                                INITIAL-PADDLES)
+              (make-ball (make-posn 100 0) (make-vel 5 2)))
+(check-expect (detect-collision (make-ball (make-posn RIGHT-PADDLE-X (paddles-right-y INITIAL-PADDLES))
+                                           (make-vel 5 -2))
+                                INITIAL-PADDLES)
+              (make-ball (make-posn RIGHT-PADDLE-X (paddles-right-y INITIAL-PADDLES))
+                                           (make-vel -5 -2)))
+(check-expect (detect-collision (make-ball (make-posn 300 300)
+                                           (make-vel 5 -2))
+                                INITIAL-PADDLES)
+              (make-ball (make-posn 300 300)
+                         (make-vel 5 -2)))
+
+(define (detect-collision b p)
   (cond
     [(or (off-top b) (off-bottom b))
      (make-ball (ball-p b) (make-vel (vel-dx (ball-v b)) (- (vel-dy (ball-v b)))))]
+    [(or (collide-paddle b LEFT-PADDLE-X (paddles-left-y p) TO-LEFT)
+         (collide-paddle b RIGHT-PADDLE-X (paddles-right-y p) TO-RIGHT))
+     (make-ball (ball-p b) (make-vel (- (vel-dx (ball-v b))) (vel-dy (ball-v b))))]
     [else b]))
- 
+
 
 ; Game->Game
 ; Update the game state by moving the ball
 (check-expect (move-ball INITIAL-GAME) TEST-GAME-2)
 
 (define (move-ball g) 
-  (make-game (update-posn (detect-collision (game-ball g))) (game-paddles g)))
+  (make-game (update-posn (detect-collision (game-ball g) (game-paddles g))) (game-paddles g)))
 
 
 ;------------------
@@ -213,7 +279,7 @@
 
 
 ; Create the world
-(big-bang (make-game TEST-BALL-2 INITIAL-PADDLES)
+(big-bang INITIAL-GAME
           (on-tick move-ball)
           (on-key control-game)
           (to-draw render-game))
