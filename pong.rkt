@@ -152,7 +152,7 @@
 (check-expect (off-top (make-ball (make-posn 50 0) (make-vel -5 3))) false)
 
 (define (off-top b)
-  (and (< (vel-dy (ball-v b)) 0) (<= (posn-y (ball-p b)) 0)))
+  (and (< (vel-dy (ball-v b)) 0) (<= (posn-y (ball-p b)) BALL-RADIUS)))
 
 
 ; Ball -> Boolean
@@ -162,7 +162,7 @@
 (check-expect (off-bottom (make-ball (make-posn 50 FIELD-HEIGHT) (make-vel 5 -3))) false)
 
 (define (off-bottom b)
-  (and (> (vel-dy (ball-v b)) 0) (>= (posn-y (ball-p b)) FIELD-HEIGHT)))
+  (and (> (vel-dy (ball-v b)) 0) (>= (posn-y (ball-p b)) (- FIELD-HEIGHT BALL-RADIUS))))
 
 
 ; Number -> Number
