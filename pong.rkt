@@ -30,14 +30,22 @@
 ; to move in the x and y directions for each frame.
 
 (define-struct ball (p v))
-; A Ball is a structure: (make-ball Posn Vel)
-; interp. (make-ball p v) means that the ball state is made up of
-; its position (Posn) and its velocity (Vel).
+(define-struct post-score (timer left))
+; A Ball is one of
+; - a structure: (make-ball Posn Vel)
+;   interp. (make-ball p v) means that the ball state is made up of
+;   its position (Posn) and its velocity (Vel).
+; - a structure: (make-post-score Number Boolean)
+;   interp. (make-post-score timer left) means that instead of displaying
+;   the ball, the score should be displayed until the timer value reaches 0.
+;   Left is true if the left player just scored, and false if the right
+;   player just scored.
 
-(define-struct game (ball paddles))
-; A Game is a structure: (make-game Ball Paddles)
-; interp. (make-ball ball paddles) means that the state of the game
-; is made up of the state of the ball and the state of the paddles
+(define-struct game (ball paddles l-score r-score))
+; A Game is a structure: (make-game Ball Paddles Number Number)
+; interp. (make-ball ball paddles l-score r-score) means that the
+; state of the game is made up of the state of the ball, the state
+; of the paddles, and the scores of the two players.
 
 
 ;-------------------
@@ -53,6 +61,7 @@
 (define PADDLE-HEIGHT 80)
 (define PADDLE-WIDTH 10)
 (define BALL-RADIUS 5)
+(define TIMER-VALUE 65)
 
 (define INITIAL-PADDLES (make-paddles 100 500))
 (define TEST-PADDLES-1 (make-paddles (- 100 PADDLE-DELTA) 500))
@@ -62,12 +71,12 @@
 (define TEST-PADDLES-5 (make-paddles 0 500))
 (define TEST-PADDLES-6 (make-paddles 100 0))
 
-(define INITIAL-BALL (make-ball (make-posn 0 0) (make-vel 5 2)))
-(define TEST-BALL-1 (make-ball (make-posn 5 2) (make-vel 5 2)))
+(define INITIAL-BALL (make-ball (make-posn 0 0) (make-vel 7 3)))
+(define TEST-BALL-1 (make-ball (make-posn 7 3) (make-vel 7 3)))
 (define TEST-BALL-2 (make-ball (make-posn 0 50) (make-vel 3 -10)))
-(define INITIAL-GAME (make-game INITIAL-BALL INITIAL-PADDLES))
-(define TEST-GAME-1 (make-game INITIAL-BALL TEST-PADDLES-1))
-(define TEST-GAME-2 (make-game TEST-BALL-1 INITIAL-PADDLES))
+(define INITIAL-GAME (make-game INITIAL-BALL INITIAL-PADDLES 0 0))
+(define TEST-GAME-1 (make-game INITIAL-BALL TEST-PADDLES-1 0 0))
+(define TEST-GAME-2 (make-game TEST-BALL-1 INITIAL-PADDLES 0 0))
 
 ;--------------------------
 ; Core Function Definitions
@@ -126,7 +135,7 @@
 (check-expect (control-game INITIAL-GAME "a") TEST-GAME-1)
 
 (define (control-game g cmd)
-  (make-game (game-ball g) (move-paddles (game-paddles g) cmd)))
+  (make-game (game-ball g) (move-paddles (game-paddles g) cmd) (game-l-score g) (game-r-score g)))
 
 
 ; Posn Vel -> Posn
@@ -167,10 +176,10 @@
 
 ; Number -> Number
 ; Return -1 for negative numbers, 1 for positive numbers, and 0 for 0.
-
 (check-expect (sign -5) -1)
 (check-expect (sign 10) 1)
 (check-expect (sign 0) 0)
+
 (define (sign n)
   (cond
     [(< n 0) -1]
@@ -214,6 +223,7 @@
        (within-vertical-range (posn-y (ball-p b)) py)
        (within-horizontal-range (posn-x (ball-p b)) px)))
 
+
 ; Ball Paddles -> Ball
 ; Update the velocity of the ball in the case of a collision
 (check-expect (detect-collision (make-ball (make-posn 100 0)
@@ -224,7 +234,7 @@
                                            (make-vel 5 -2))
                                 INITIAL-PADDLES)
               (make-ball (make-posn RIGHT-PADDLE-X (paddles-right-y INITIAL-PADDLES))
-                                           (make-vel -5 -2)))
+                         (make-vel -5 -2)))
 (check-expect (detect-collision (make-ball (make-posn 300 300)
                                            (make-vel 5 -2))
                                 INITIAL-PADDLES)
@@ -241,12 +251,71 @@
     [else b]))
 
 
-; Game->Game
-; Update the game state by moving the ball
-(check-expect (move-ball INITIAL-GAME) TEST-GAME-2)
+; Boolean -> Ball
+; Generate a random ball
+(define (random-ball left)
+  (make-ball
+   (make-posn (if left 0 FIELD-WIDTH) (random FIELD-HEIGHT))
+   (make-vel (if left 7 -7) (- (random 7) 3))))
 
-(define (move-ball g) 
-  (make-game (update-posn (detect-collision (game-ball g) (game-paddles g))) (game-paddles g)))
+
+; Ball -> Ball
+; Process post-score representation of ball by either counting down the timer or
+; creating a new ball when the timer expires.
+(check-expect (process-post-score (make-post-score 100 true))
+              (make-post-score 99 true))
+
+(define (process-post-score b)
+  (if (> (post-score-timer b) 0)
+      (make-post-score (- (post-score-timer b) 1) (post-score-left b))
+      (random-ball (post-score-left b))))
+
+
+; Ball -> Boolean
+; Check to see if the left player scored.
+(check-expect (left-scored? (make-ball (make-posn FIELD-WIDTH 50) (make-vel 7 3))) true)
+(check-expect (left-scored? (make-ball (make-posn FIELD-WIDTH 50) (make-vel -7 3))) false)
+(check-expect (left-scored? (make-ball (make-posn 100 50) (make-vel 7 3))) false)
+
+(define (left-scored? b)
+  (and (ball? b)
+       (>= (posn-x (ball-p b)) FIELD-WIDTH)
+       (> (vel-dx (ball-v b)) 0)))
+
+
+; Ball -> Boolean
+; Check to see if the right player scored.
+(check-expect (right-scored? (make-ball (make-posn 0 50) (make-vel 7 3))) false)
+(check-expect (right-scored? (make-ball (make-posn 0 50) (make-vel -7 3))) true)
+(check-expect (right-scored? (make-ball (make-posn 100 50) (make-vel 7 3))) false)
+
+(define (right-scored? b)
+  (and (ball? b)
+       (< (posn-x (ball-p b)) 0)
+       (< (vel-dx (ball-v b)) 0)))
+
+
+; Game -> Game
+; Update the game state each frame
+(check-expect (update INITIAL-GAME) TEST-GAME-2)
+
+(define (update g)
+  (cond
+    [(left-scored? (game-ball g))
+     (make-game (make-post-score TIMER-VALUE true)
+                (game-paddles g)
+                (add1 (game-l-score g))
+                (game-r-score g))]
+    [(right-scored? (game-ball g))
+     (make-game (make-post-score TIMER-VALUE false)
+                (game-paddles g)
+                (game-l-score g)
+                (add1 (game-r-score g)))]
+    [ else (make-game (if (post-score? (game-ball g))
+                          (process-post-score (game-ball g))
+                          (update-posn (detect-collision (game-ball g) (game-paddles g))))
+                      (game-paddles g)
+                      (game-l-score g) (game-r-score g))]))
 
 
 ;------------------
@@ -268,18 +337,27 @@
                             RIGHT-PADDLE-X (paddles-right-y s)
                             FIELD)))
 
+; Number Number -> Image
+(define (render-score ls rs)
+  (text (string-append (number->string ls) "  :  " (number->string rs))
+        50 "white"))
 
 ; Game -> Scene
 ; render the entire game state
 (define (render-game g)
-  (place-image BALL
-               (posn-x (ball-p (game-ball g)))
-               (posn-y (ball-p (game-ball g)))
-               (render-paddles (game-paddles g))))
+  (cond
+    [(post-score? (game-ball g))
+     (place-image (render-score (game-l-score g) (game-r-score g))
+                  (/ FIELD-WIDTH 2) (/ FIELD-HEIGHT 4)
+                  (render-paddles (game-paddles g)))]
+    [else (place-image BALL
+                       (posn-x (ball-p (game-ball g)))
+                       (posn-y (ball-p (game-ball g)))
+                       (render-paddles (game-paddles g)))]))
 
 
 ; Create the world
 (big-bang INITIAL-GAME
-          (on-tick move-ball)
+          (on-tick update)
           (on-key control-game)
           (to-draw render-game))
