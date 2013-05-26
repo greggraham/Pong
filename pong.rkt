@@ -285,8 +285,8 @@
 
 ; Ball -> Boolean
 ; Check to see if the right player scored.
-(check-expect (right-scored? (make-ball (make-posn 0 50) (make-vel 7 3))) false)
-(check-expect (right-scored? (make-ball (make-posn 0 50) (make-vel -7 3))) true)
+(check-expect (right-scored? (make-ball (make-posn -1 50) (make-vel 7 3))) false)
+(check-expect (right-scored? (make-ball (make-posn -1 50) (make-vel -7 3))) true)
 (check-expect (right-scored? (make-ball (make-posn 100 50) (make-vel 7 3))) false)
 
 (define (right-scored? b)
